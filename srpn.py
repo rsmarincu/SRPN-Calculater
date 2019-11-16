@@ -1,6 +1,7 @@
 import sys
 import random
 import traceback
+import re
 
 
 class SRPN:
@@ -9,7 +10,7 @@ class SRPN:
 
         self.userInput = []
 
-        self.operands = ['+', '-', '*', '/', '%', '^', 'd', 'r', '#']
+        self.operators = ['+', '-', '*', '/', '%', '^', 'd', 'r', '#']
 
         self.stack = []
 
@@ -49,83 +50,114 @@ class SRPN:
         while True:
 
             self.getInput()
-            self.calculator()
+
 
     def getInput(self):
 
-        self.userInput = []
-
         while True:
+            self.userInput = []
             try:
-                self.userInput.extend(list(input().split()))
+                self.userInput.extend(list(input().split(' ')))
+                if(len(self.userInput) > 1):
+                    if self.userInput[-1] == '=':
+                        del(self.userInput[-1])
+                        self.createStack()
+                        self.printResult()
+                        break
+                # elif (len(self.userInput[-1]) >= 3):
+                #     string = self.userInput[-1]
+                #     del(self.userInput[-1])
+                #     self.userInput.extend(self.separateConcatenantedStrings(string))
+                #     # self.createStack()
             except Exception as e:
                 print(e)
             if self.userInput[-1] == '=':
-                del(self.userInput[-1])
+                self.printResult()
                 break
-            elif self.userInput[-1] == '\n':
-                break
-            elif self.userInput[-1] == 'd':
-                self.printStack()
-                del(self.userInput[-1])
-            
+            self.createStack()
 
-    def calculator(self):
-        try:
-            while (any(element in self.userInput for element in self.operands)):
-                for i, current in enumerate(self.userInput):
-                    if current in self.operands:
-                        if current == 'r':
-                            self.userInput[i] = self.operations[current](
-                                self.currentR)
-                            self.currentR += 1
-                            continue
-                        if current == 'd':
-                            self.stack.extend(self.userInput[:i])
-                            self.printStack()
-                            del(self.userInput[i])
-                            break
-                        if current == '#':
+
+    def createStack(self):
+
+        while self.userInput:
+            for i, element in enumerate(self.userInput):
+                try:
+                    number = int(element)
+                    del(self.userInput[i])
+                    if len(self.stack) + 1 > self.stackOverflow:
+                        print("Stack Overflow!")
+                        continue
+                    else:
+                        self.stack.append(number)
+                        break
+                except ValueError:
+                    if element in self.operators:
+                        if element == '#':
                             j = i + 1
                             while self.userInput[j] != '#':
                                 j += 1
-                            self.userInput = self.userInput[:i] + \
-                                self.userInput[j+1:]
+                            self.userInput = self.userInput[:i] + self.userInput[j+1:]
                             break
-                        try:
-                            a = int(self.userInput[i-2])
-                            b = int(self.userInput[i-1])
-                            result = self.operations[current](a, b)
-                            if (result >= self.overSaturation):
-                                result = self.overSaturation
-                            elif (result <= self.underSaturation):
-                                result = self.underSaturation
-                        except ValueError:
-                            print("Stack Overflow.")
+                        elif element == 'r':
+                            if len(self.stack) + 1 > self.stackOverflow:
+                                del(self.userInput[i])
+                                print("Stack Overflow!")
+                                break
+                            else:
+                                self.stack.append(self.operations[element](self.currentR))
+                                self.currentR += 1
+                                del(self.userInput[i])
+                                break
+                        elif element == 'd':
+                            self.printStack()
+                            del(self.userInput[i])
+                            continue
+                        else:
+                            self.calculator(element)
+                            del(self.userInput[i])
                             return
-
-                        self.userInput[i] = result
-                        del(self.userInput[i-1])
-                        del(self.userInput[i-2])
-                        break
-
                     else:
-                        try:
-                            int(current)
-                        except ValueError:
-                            print("Invalid operand {}.".format(current))
+                        string = self.userInput[-1]
+                        del(self.userInput[-1])
+                        self.userInput.extend(self.separateConcatenantedStrings(string))
+                        #print("Unrecognized operator or opernad {}".format(element))
 
-        except ZeroDivisionError:
-            print("Division by zero.")
+
+
+    def calculator(self, operator):
+
+        try:
+            a = int(self.stack[-2])
+            b = int(self.stack[-1])
+
+            result = self.operations[operator](a, b)
+            if (result >= self.overSaturation):
+                result = self.overSaturation
+            elif (result <= self.underSaturation):
+                result = self.underSaturation
+            self.stack[-1] = result
+            del(self.stack[-2])
+
+        except ValueError:
+            print("Stack Underflow.")
             return
 
-        self.stack.extend(self.userInput)
+        except ZeroDivisionError:
+            print("Divison by zero.")
+            return
 
-        if len(self.stack) < self.stackOverflow:
+        except IndexError:
+            print("Stack Underflow!")
+            return
 
-            self.printResult()
-        else:
-            print("Stack Overflow.")
+    def separateConcatenantedStrings(self, concatString):
+
+        stringList = re.split('(\D)', concatString)
+        numbers = list(filter(lambda a: a != '', stringList))
+
+        for n in numbers
+
+        return numbers        
 
     def printResult(self):
         print(self.stack[-1])
