@@ -1,6 +1,3 @@
-import sys
-import random
-import traceback
 import re
 
 
@@ -10,7 +7,7 @@ class SRPN:
 
         self.userInput = []
 
-        self.operators = ['+', '-', '*', '/', '%', '^', 'd', 'r', '#']
+        self.operators = ['+', '-', '*', '/', '%', '^', 'd', 'r', '#','=']
 
         self.stack = []
 
@@ -39,9 +36,12 @@ class SRPN:
             '%': (lambda a, b: a % b),
             '^': (lambda a, b: pow(a, b)),
             'r': (lambda a: self.rNumbers[a % len(self.rNumbers)]),
+            '=': (lambda a: a)
         }
 
         self.currentR = 0
+
+        self.previous = 0
 
     def start(self):
 
@@ -64,11 +64,6 @@ class SRPN:
                         self.createStack()
                         self.printResult()
                         break
-                # elif (len(self.userInput[-1]) >= 3):
-                #     string = self.userInput[-1]
-                #     del(self.userInput[-1])
-                #     self.userInput.extend(self.separateConcatenantedStrings(string))
-                #     # self.createStack()
             except Exception as e:
                 print(e)
             if self.userInput[-1] == '=':
@@ -80,6 +75,7 @@ class SRPN:
     def createStack(self):
 
         while self.userInput:
+         
             for i, element in enumerate(self.userInput):
                 try:
                     number = int(element)
@@ -115,11 +111,12 @@ class SRPN:
                         else:
                             self.calculator(element)
                             del(self.userInput[i])
-                            return
+                            break
                     else:
                         string = self.userInput[-1]
                         del(self.userInput[-1])
                         self.userInput.extend(self.separateConcatenantedStrings(string))
+                        break
                         #print("Unrecognized operator or opernad {}".format(element))
 
 
@@ -127,14 +124,20 @@ class SRPN:
     def calculator(self, operator):
 
         try:
+            if operator == '=':
+                print(self.previous)
+                return
+
             a = int(self.stack[-2])
             b = int(self.stack[-1])
-
+            self.previous = b
             result = self.operations[operator](a, b)
+
             if (result >= self.overSaturation):
                 result = self.overSaturation
             elif (result <= self.underSaturation):
                 result = self.underSaturation
+
             self.stack[-1] = result
             del(self.stack[-2])
 
@@ -147,15 +150,28 @@ class SRPN:
             return
 
         except IndexError:
+            print(self.stack, operator)
             print("Stack Underflow!")
             return
 
     def separateConcatenantedStrings(self, concatString):
 
-        stringList = re.split('(\D)', concatString)
-        numbers = list(filter(lambda a: a != '', stringList))
+        numbers = []
+        operators = []
 
-        for n in numbers
+        stringList = re.split('(\D)', concatString)
+        stringList = list(filter(lambda a: a != '', stringList))
+
+        for string in stringList:
+            try:
+                numbers.append(int(string))
+            except ValueError:
+                if string in self.operators:
+                    operators.append(string)
+                else:
+                    print("Unrecognized operator or operand {}.".format(string))
+        
+        numbers.extend(operators)
 
         return numbers        
 
